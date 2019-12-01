@@ -211,17 +211,16 @@ trait Huffman extends HuffmanInterface {
   def encode(tree: CodeTree)(text: List[Char]): List[Bit] = {
     def encodeChar(char: Char): List[Bit] = {
       def encodeCharHelper(tree: CodeTree, char: Char): (Boolean, List[Bit]) = tree match {
-        case Fork(left, right, _, _) =>
-          val leftResult = encodeCharHelper(left, char)
-          val rightResult = encodeCharHelper(right, char)
-          if (leftResult._1) (true, 0 :: leftResult._2)
-          else if (rightResult._1) (true, 1 :: rightResult._2)
-          else (false, Nil)
+        case Fork(left, right, _, _) => (encodeCharHelper(left, char), encodeCharHelper(right, char)) match {
+          case ((true, bits), _) => (true, 0 :: bits)
+          case (_, (true, bits)) => (true, 1 :: bits)
+          case _ => (false, Nil)
+        }
         case Leaf(ch, _) => (ch == char, Nil)
       }
 
-      val result = encodeCharHelper(tree, char)
-      if (result._1) result._2 else throw new NoSuchElementException("Unknown symbol: " + char)
+      val (found, bits) = encodeCharHelper(tree, char)
+      if (found) bits else throw new NoSuchElementException("Unknown symbol: " + char)
     }
 
     text match {
